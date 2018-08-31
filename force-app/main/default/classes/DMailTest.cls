@@ -1,7 +1,6 @@
 @isTest
 private class DMailTest {
-    @isTest
-    static void doTest(){
+    static testMethod void doTest(){
         DMail tMail = new DMail();
 
         tMail.setMail('tydsharp@outlook.jp');

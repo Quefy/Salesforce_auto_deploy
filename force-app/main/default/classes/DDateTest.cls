@@ -1,7 +1,6 @@
 @isTest
 private class DDateTest {
-    @isTest
-    static void doTest(){
+    static testMethod void doTest(){
         DDate tDate = new DDate();
 
         tDate.setDate('2018/08/29');
