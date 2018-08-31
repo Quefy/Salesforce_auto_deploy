@@ -19,11 +19,7 @@
                                  value="{!URLFOR($Page.UserinfoView,null)}">キャンセル</apex:outputLink>
             </apex:pageBlockButtons>
             
-<<<<<<< HEAD
             <apex:outputText value="社員情報登録++"/>
-=======
-            <apex:outputText value="社員情報登録!!"/>
->>>>>>> 9055322c139ae79469d3ae0c5719c933d53699cc
             
         	<apex:pageBlockSection columns="2">
             	<apex:pageBlockSectionItem >
