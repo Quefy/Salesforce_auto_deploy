@@ -1,0 +1,67 @@
+<apex:page standardController="Employee__c" extensions="UserInfoEntryController" docType="html-5.0">
+    <apex:slds />
+        
+    <apex:form id="userInfoForm">
+        <apex:message />
+        <apex:pageBlock >
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton action="{!saveUserInfo}" 
+                                    styleClass="slds-button slds-button_brand" 
+                                    value="登録"
+                                    reRender="userInfoForm"
+                                    rendered="{!NOT(isEditMode)}"/>
+                <apex:commandButton action="{!saveUserInfo}" 
+                                    styleClass="slds-button slds-button_brand" 
+                                    value="更新"
+                                    reRender="userInfoForm"
+                                    rendered="{!isEditMode}"/>   
+                <apex:outputLink styleClass="slds-button slds-button_brand"
+                                 value="{!URLFOR($Page.UserinfoView,null)}">キャンセル</apex:outputLink>
+            </apex:pageBlockButtons>
+            
+            <apex:outputText value="社員情報登録@@"/>
+            
+        	<apex:pageBlockSection columns="2">
+            	<apex:pageBlockSectionItem >
+                    <apex:outputLabel value="姓：" for="lastName" />
+                    <apex:inputText size="50" value="{!employee.eName.lastName}" id="lastName" />
+                </apex:pageBlockSectionItem>
+				<apex:pageBlockSectionItem >
+                    <apex:outputLabel value="名：" for="firstName" />
+                    <apex:inputText size="50" value="{!employee.eName.firstName}" id="firstName" />                
+                </apex:pageBlockSectionItem>
+
+            	<apex:pageBlockSectionItem >
+                    <apex:outputLabel value="メールアドレス：" for="email" />
+                    <apex:inputText size="50" value="{!employee.eMail.mail}" id="email" />
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+            	
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="電話番号：" for="phoneNumber" />
+                    <apex:inputText size="50" value="{!employee.ePhoneNumber.phoneNumber}" id="phoneNumber" />
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                
+          		<apex:pageBlockSectionItem >
+                    <apex:outputLabel value="郵便番号：" for="postalCode" />
+                    <apex:inputText size="50" value="{!employee.eAddress.postalCode}" id="postalCode" />
+                </apex:pageBlockSectionItem>
+            	<apex:pageBlockSectionItem >
+                    <apex:outputLabel value="住所：" for="address" />
+                    <apex:inputText size="50" value="{!employee.eAddress.address}" id="address" />
+                </apex:pageBlockSectionItem>
+            	<apex:pageBlockSectionItem >
+                    <apex:outputLabel value="生年月日："/>
+                    <c:uiDate yearValue="{!employee.eBirthday.year}" monthValue="{!employee.eBirthday.month}" dayValue="{!employee.eBirthday.day}" />
+                </apex:pageBlockSectionItem>                
+            </apex:pageBlockSection>
+
+            <apex:outputPanel rendered="{!NOT(ISBLANK(pageMessage))}">
+        		<h3 style="color:red;">
+                	{!pageMessage}
+            	</h3>
+        	</apex:outputPanel>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

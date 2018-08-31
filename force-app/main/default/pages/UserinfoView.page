@@ -1,0 +1,54 @@
+<apex:page controller="UserInfoViewController">
+
+    <apex:slds />
+        
+    <apex:form id="userInfoForm">
+        <apex:pageBlock >
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton action="{!refreshUserInfo}" 
+                                    styleClass="slds-button slds-button_brand" 
+                                    value="更新" 
+                                    reRender="userInfoForm"/>
+            </apex:pageBlockButtons>
+            
+            <apex:outputText value="更新ボタンでデータを更新してください。" rendered="{!ISNULL(employeeList)}" />
+            <apex:dataTable value="{!employeeList}" 
+                            var="employee" 
+                            styleClass="slds-table slds-table_bordered slds-table_cell-buffer" 
+                            headerClass="slds-text-title_caps"
+                            columnClasses="slds-truncate"
+                            rendered="{!NOT(ISNULL(employeeList))}">
+                <apex:facet name="caption">ユーザ情報一覧</apex:facet>
+                <apex:column >
+                    <apex:facet name="header">社員番号</apex:facet>
+
+					<apex:outputLink value="{!URLFOR($Page.UserinfoEntry,null,[id=employee.eId])}">{!employee.eNo}</apex:outputLink>
+<!--                	
+                    <apex:outputText >{!employee.eNo}</apex:outputText>
+-->
+				</apex:column>                
+                <apex:column >
+                    <apex:facet name="header">氏名</apex:facet>
+                    <apex:outputText value="{!employee.eName.lastName + ' ' + employee.eName.firstName}" />
+                </apex:column>
+            	<apex:column >
+                    <apex:facet name="header">メールアドレス</apex:facet>
+                    <apex:outputText value="{!employee.eMail.mail}" />
+                </apex:column>
+            	<apex:column >
+                    <apex:facet name="header">電話番号</apex:facet>
+                    <apex:outputText value="{!employee.ePhoneNumber.phoneNumber}" />
+                </apex:column>
+            	<apex:column >
+                    <apex:facet name="header">住所</apex:facet>
+                    <apex:outputText value="{!employee.eAddress.postalCode + ' ' + employee.eAddress.address}" />
+                </apex:column> 
+            	<apex:column >
+                    <apex:facet name="header">生年月日</apex:facet>
+                    <apex:outputText value="{!employee.eBirthday.year + '/' + employee.eBirthday.month + '/' + employee.eBirthday.day}" />
+                </apex:column>                
+            </apex:dataTable>
+        </apex:pageBlock>
+    </apex:form>
+
+</apex:page>

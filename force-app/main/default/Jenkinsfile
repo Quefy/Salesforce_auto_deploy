@@ -1,0 +1,132 @@
+pipeline {
+    agent {
+        node {
+            label 'master'
+            customWorkspace 'C:/Users/z2182805/Desktop/test/workspace'
+        }
+    }
+    parameters {
+        //paramters for DevHub Org
+        string(name:'DH_ORG_USER',defaultValue:'tou_ekitatsu@quefy.com',description:'DevHub Org login username')
+        string(name:'DH_SFDC_HOST',defaultValue:'https://login.salesforce.com',description:'DevHub Org Url')
+        string(name:'DH_CONNECTED_APP_CONSUMER_KEY',defaultValue:'3MVG9YDQS5WtC11ovJwCgx9f0A5ey6z3ipwS0DE2u2L1K2mparBn1jX7ib321qnFjQlfu0Syk5AkCXoxszf3_',description:'DevHub Org client id')
+        string(name:'DH_SECRET_KEY',defaultValue:'C:/Users/z2182805/Desktop/test/JWT/server.key',description:'DevHub org secret key file')
+        
+        //paramters for Product Org
+        string(name:'DP_ORG_USER',defaultValue:'tou_ekitatsu@quefy.com',description:'DevHub Org login username')
+        choice(name:'DP_SFDC_HOST',choices:"https://login.salesforce.com\nhttps://test.salesforce.com",description:'DevHub Org Url')
+        string(name:'DP_CONNECTED_APP_CONSUMER_KEY',defaultValue:'3MVG9YDQS5WtC11ovJwCgx9f0A5ey6z3ipwS0DE2u2L1K2mparBn1jX7ib321qnFjQlfu0Syk5AkCXoxszf3_',description:'DevHub Org client id')
+        string(name:'DP_SECRET_KEY',defaultValue:'C:/Users/z2182805/Desktop/test/JWT/server.key',description:'DevHub org secret key file')
+    }
+    environment {
+        SFDX_AUTOUPDATE_DISABLE=true
+        HTTP_PROXY='http://tci-proxy.trans-cosmos.co.jp:8080'
+        HTTPS_PROXY='https://tci-proxy.trans-cosmos.co.jp:8080'
+        DH_TEST_ORG_NAME='testOrg'
+        APEX_TEST_OUTPUT_DIR='data/ApexTestResult'
+        METADATA_OUTPUT_DIR='data/Metadata'
+    } 
+    stages {
+        stage('Environment initialization'){
+            steps{
+                bat 'if exist data rmdir /s /q data'
+            }
+        }
+        stage('DevHub Org Certification') {
+            steps{
+                bat "sfdx force:auth:jwt:grant -i ${params.DH_CONNECTED_APP_CONSUMER_KEY} -f ${params.DH_SECRET_KEY} -u ${params.DH_ORG_USER} -r ${params.DH_SFDC_HOST} -a _DevHubOrg_"
+            }
+        }
+        stage('Test Org Create') {
+            
+            steps{
+                bat "sfdx force:org:create -f config/project-scratch-def.json --setdefaultusername --setalias ${env.DH_TEST_ORG_NAME} --targetdevhubusername _DevHubOrg_"
+            }
+        }
+        stage('Push source to Test Org') {
+            steps{
+                bat "sfdx force:source:push --forceoverwrite --targetusername  ${env.DH_TEST_ORG_NAME}"
+            }
+        }
+        stage('Apex Test run') {
+            steps {
+                script{
+                    /*apex:test:run*/
+                    def retStatus = bat returnStatus:true,script:"sfdx force:apex:test:run --testlevel RunAllTestsInOrg --outputdir ${env.APEX_TEST_OUTPUT_DIR} --targetusername ${env.DH_TEST_ORG_NAME}" 
+                    echo "${retStatus}"
+                    if(retStatus != 0){
+                        error '[ERROR]apex:test:run failed!'
+                    }
+
+                    /*Get id of the apex:test:run */
+                    def testrunid = readFile file:"${env.APEX_TEST_OUTPUT_DIR}/test-run-id.txt"
+                    
+                    /*apex:test:report*/
+                    retStatus = bat returnStatus:true,script:"sfdx force:apex:test:report --wait 10 --testrunid ${testrunid} --codecoverage --targetusername ${env.DH_TEST_ORG_NAME} --outputdir ${env.APEX_TEST_OUTPUT_DIR}"
+                    if(retStatus != 0){
+                        error '[ERROR]apex:test:report failed!'
+                    }
+                    def report = readJSON file:"${env.APEX_TEST_OUTPUT_DIR}/test-result-${testrunid}.json"
+
+                    //bat "sfdx force:apex:log:list --targetusername ${env.DH_TEST_ORG_NAME}"
+                    
+                    /*Get test log file*/
+                    bat "sfdx force:apex:log:get --number ${report['summary']['testsRan']} --targetusername ${env.DH_TEST_ORG_NAME} 1> ${env.APEX_TEST_OUTPUT_DIR}/logfile-${testrunid}.txt"
+                                        
+                    if(report['summary']['passRate'] != '100%') {
+                        error "[ERROR]Apex Test result failed! Please see [${env.APEX_TEST_OUTPUT_DIR}/logfile-${testrunid}.txt] to get details!"
+                    }
+                }
+            }
+        }
+        stage('Test Org delete'){
+            steps{
+                bat "sfdx force:org:delete --noprompt --targetusername ${env.DH_TEST_ORG_NAME}"
+            }
+        }
+        stage('DevHub Org logout'){
+            steps{
+                bat "sfdx force:auth:logout --noprompt --targetusername _DevHubOrg_"
+            }
+        }
+        stage('Product Org Certification'){
+            steps{
+                bat "sfdx force:auth:jwt:grant -i ${params.DP_CONNECTED_APP_CONSUMER_KEY} -f ${params.DP_SECRET_KEY} -u ${params.DP_ORG_USER} -r ${params.DP_SFDC_HOST} -a _ProductOrg_"
+            }
+        
+        }
+        stage('Product Org Deploy'){
+            steps{
+                script{
+                    //convert salesforce dx project into metadata that can deploy
+                    bat "sfdx force:source:convert -d ${env.METADATA_OUTPUT_DIR}"
+
+                    //Validates the deployed metadata
+                    bat "sfdx force:mdapi:deploy --wait -1 --checkonly --deploydir ${env.METADATA_OUTPUT_DIR} --targetusername _ProductOrg_"
+
+                    //check the status of the deployment
+                    bat "sfdx force:mdapi:deploy:report --wait -1 --json 1> ${env.APEX_TEST_OUTPUT_DIR}/deployReport.json"
+
+                    def report = readJSON file:"${env.APEX_TEST_OUTPUT_DIR}/deployReport.json"
+                    if(report['result']['status'] != 'Succeeded'){
+                        echo "[Deploy Report] \n ${report}"
+                        error "[ERROR]Deploy check is faild!"
+                    }
+
+                    //exinclude Apex Test Class
+
+
+                    //deploy
+                    def deployRet = bat returnStdout:true,script:"sfdx force:mdapi:deploy --wait -1 --deploydir ${env.METADATA_OUTPUT_DIR} --targetusername _ProductOrg_ --json"
+                    echo "[Deploy] \n ${deployRet}"
+                }
+            }
+        }
+        stage('Product Org logout'){
+            steps{
+                bat "sfdx force:auth:logout --noprompt --targetusername _ProductOrg_"
+                echo "!!!Deploy Success!!!"
+            }
+        }
+    }
+}

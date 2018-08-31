@@ -1,0 +1,92 @@
+<apex:component controller="uiDateController" layout="block">
+	<apex:attribute name="appearance" 
+                    description="The appearance of the Date Component. The default is 'Pulldown'" 
+                    type="String" 
+                    required="false" />
+    <apex:attribute name="yearValue" 
+                    description="A merge field that references the controller class variable that is associated with the year value of this component." 
+                    type="String" 
+                    required="true" />
+    <apex:attribute name="monthValue" 
+                    description="A merge field that references the controller class variable that is associated with the month value of this component." 
+                    type="String" 
+                    required="true" />    
+    <apex:attribute name="dayValue" 
+    				description="A merge field that references the controller class variable that is associated with the day value of this component." 
+    				type="String" 
+    				required="true" />
+
+    <!-- <apex:actionFunction action="{!updateDate}" name="updateDate" reRender="PKGDay" /> -->
+    <!-- Date : Pulldown  -->
+    <apex:outputPanel id="uiPKGDate" rendered="{!IF(ISNULL(appearance) || appearance=='Pulldown',true,false)}">        	    
+	    <script>
+	    	document.addEventListener("DOMContentLoaded",function(){
+	    		updateDate();
+	    	});
+	    	function updateDate(){
+	    		document.getElementById("{!$Component.yearValue}").value = {!year};
+	    		document.getElementById("{!$Component.monthValue}").value = {!month};
+	    		document.getElementById("{!$Component.dayValue}").value = {!day};
+	    	}
+	    	
+	    </script>
+	    <apex:inputHidden value="{!yearValue}" id="yearValue"/>
+	    <apex:inputHidden value="{!monthValue}" id="monthValue"/>
+	    <apex:inputHidden value="{!dayValue}" id="dayValue"/>
+	    
+        <!-- Year select list -->
+        <apex:selectList id="PKGYear" 
+                         value="{!year}"
+                         multiselect="false"
+                         size="1">
+            <apex:selectOptions value="{!yearList}" />
+            <apex:actionSupport action="{!updateDate}" 
+                                reRender="uiPKGDate" 
+                                focus="PKGMonth" 
+                                event="onchange" 
+                                oncomplete="updateDate()"/>
+        </apex:selectList>
+        <apex:outputLabel style="margin-left:3px;margin-right:5px" value="年" for="PKGYear" />
+        
+        <!-- month select list -->
+        <apex:selectList id="PKGMonth" 
+                         value="{!month}"
+                         multiselect="false"
+                         size="1">
+            <apex:selectOptions value="{!monthList}" />
+            <apex:actionSupport action="{!updateDate}" 
+                                reRender="uiPKGDate" 
+                                focus="PKGDay" 
+                                event="onchange" 
+                                oncomplete="updateDate()" />
+           
+        </apex:selectList>
+        <apex:outputLabel style="margin-left:3px;margin-right:5px" styleClass="" value="月" for="PKGMonth" />
+        
+        <!-- day select list -->
+        <apex:selectList id="PKGDay" 
+                         value="{!day}"
+                         multiselect="false"
+                         size="1">
+            <apex:selectOptions value="{!dayList}" />
+            <apex:actionSupport action="{!updateDate}" 
+                                event="onchange" 
+                                reRender="uiPKGDate"
+                                oncomplete="updateDate()"/>
+        </apex:selectList>
+        <apex:outputLabel style="margin-left:3px;margin-right:5px" styleClass="" value="日" for="PKGDay" />              
+    </apex:outputPanel>
+    
+    <!-- Date : Input(Text) -->
+	<apex:outputPanel styleClass="slds-form-element" rendered="{!IF(appearance=='InputText',true,false)}">
+		<apex:input styleClass="slds-input" value="{!yearValue}" id="Year" />
+		<apex:outputLabel styleClass="slds-form-element__label" value="年" for="Year" />
+
+		<apex:input styleClass="slds-input" value="{!monthValue}" id="Month" />
+		<apex:outputLabel styleClass="slds-form-element__label" value="月" for="Month" />
+
+		<apex:input styleClass="slds-input" value="{!dayValue}" id="Day" />
+		<apex:outputLabel styleClass="slds-form-element__label" value="日" for="Day" />
+	</apex:outputPanel>
+	
+</apex:component>
